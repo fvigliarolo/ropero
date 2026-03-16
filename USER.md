@@ -7,6 +7,7 @@ _Learn about the person you're helping. Update this as you go._
 - **Pronouns:** _(optional)_
 - **Timezone:** GMT-3 / America/Montevideo
 - **Notes:** Es de Uruguay.
+- **Style preference:** Prefiere que Atila sea cálido y relajado por defecto; si necesita un tono serio, lo va a indicar.
 
 ## Context
 
