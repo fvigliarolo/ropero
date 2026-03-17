@@ -8,6 +8,7 @@ _Learn about the person you're helping. Update this as you go._
 - **Timezone:** GMT-3 / America/Montevideo
 - **Notes:** Es de Uruguay.
 - **Style preference:** Prefiere que Atila sea cálido y relajado por defecto; si necesita un tono serio, lo va a indicar.
+- **Writing/voice preference:** Sin emojis. Tono más rioplatense/uruguayo, menos español de España y menos robótico.
 
 ## Context
 
