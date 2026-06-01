@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ropero</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>Ropero</h1>
+        <p>Una vista simple para ver toda la ropa guardada en Notion con sus fotos en un solo lugar.</p>
+      </div>
+      <button id="reloadBtn">Actualizar</button>
+    </header>
+
+    <section class="filters">
+      <input id="searchInput" type="search" placeholder="Buscar por nombre, marca, talle, color..." />
+      <select id="statusFilter">
+        <option value="">Todos los estados</option>
+      </select>
+      <select id="categoryFilter">
+        <option value="">Todas las tiendas</option>
+      </select>
+    </section>
+
+    <section id="summary" class="summary"></section>
+    <main id="grid" class="grid"></main>
+
+    <template id="cardTpl">
+      <article class="card">
+        <img class="card-image" alt="" loading="lazy" />
+        <div class="card-body">
+          <div class="card-head">
+            <h2 class="card-title"></h2>
+            <a class="card-link" target="_blank" rel="noreferrer">Abrir en Notion</a>
+          </div>
+          <p class="card-description"></p>
+          <div class="card-actions"></div>
+          <dl class="meta"></dl>
+          <div class="thumbs"></div>
+        </div>
+      </article>
+    </template>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

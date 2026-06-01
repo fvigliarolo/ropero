@@ -1,0 +1,119 @@
+:root {
+  color-scheme: dark;
+  --bg: #111318;
+  --panel: #1b2029;
+  --panel-2: #242b36;
+  --text: #f3f5f7;
+  --muted: #a9b2bf;
+  --accent: #8ab4ff;
+  --border: #333b48;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Inter, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+.topbar, .filters, .summary {
+  width: min(1200px, calc(100% - 32px));
+  margin: 0 auto;
+}
+.topbar {
+  padding: 24px 0 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: end;
+}
+.topbar h1 { margin: 0 0 6px; }
+.topbar p { margin: 0; color: var(--muted); }
+button, input, select {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.filters {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.summary {
+  color: var(--muted);
+  margin-bottom: 12px;
+  min-height: 24px;
+}
+.grid {
+  width: min(1200px, calc(100% - 32px));
+  margin: 0 auto 32px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+}
+.card-image {
+  width: 100%;
+  height: 320px;
+  object-fit: cover;
+  background: var(--panel-2);
+}
+.card-body { padding: 14px; }
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: baseline;
+}
+.card-title { margin: 0; font-size: 1rem; }
+.card-link { color: var(--accent); font-size: .9rem; text-decoration: none; }
+.card-description { color: var(--muted); min-height: 2.6em; }
+.card-actions {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0 4px;
+}
+.card-actions a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: .92rem;
+}
+.meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 10px;
+  margin: 0;
+}
+.meta dt { color: var(--muted); }
+.meta dd { margin: 0; }
+.thumbs {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  overflow-x: auto;
+}
+.thumbs img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.empty {
+  width: min(1200px, calc(100% - 32px));
+  margin: 40px auto;
+  color: var(--muted);
+}
+@media (max-width: 760px) {
+  .filters { grid-template-columns: 1fr; }
+  .topbar { align-items: start; flex-direction: column; }
+}

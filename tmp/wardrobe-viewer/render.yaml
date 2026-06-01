@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: atila-wardrobe-viewer
+    runtime: node
+    plan: free
+    rootDir: tmp/wardrobe-viewer
+    buildCommand: "npm install"
+    startCommand: "node server.js"
+    healthCheckPath: "/api/items"
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: NOTION_TOKEN
+        sync: false
+      - key: NOTION_WARDROBE_DB_ID
+        value: 371dded7-4e1e-810c-ae33-e59e6ef1dbc4
+      - key: NOTION_CLOTHES_PAGE_ID
+        value: 344dded7-4e1e-8137-87a1-fbe4ff41076e
+      - key: PORT
+        value: 10000
