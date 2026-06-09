@@ -14,7 +14,9 @@ La app:
 - lee la database estructurada de ropa
 - usa título, tienda, categoría, color, talle, estado y link del producto
 - si una prenda no tiene imagen guardada en Notion, visita el producto y toma su `og:image` / `twitter:image`
+- cuando encuentra esas imágenes externas, las guarda en la propiedad de archivos de Notion para acelerar cargas futuras
 - arma una galería única con filtros por tienda y búsqueda
+- cachea la lista de prendas en memoria para no consultar Notion en cada visita
 
 Quedó un fallback legacy a la página original:
 - `Compras de ropa`
@@ -44,6 +46,22 @@ npm run healthcheck
 - `NOTION_WARDROBE_DB_ID` para cambiar la database principal
 - `NOTION_CLOTHES_PAGE_ID` para cambiar la página legacy de fallback
 - `PORT` para cambiar el puerto
+- `ITEMS_CACHE_TTL_MS` para ajustar la duración del cache de prendas. Por defecto: 10 minutos
+- `PRODUCT_FETCH_TIMEOUT_MS` para limitar cuánto espera al extraer imagen de sitios externos. Por defecto: 6 segundos
+- `NOTION_IMAGE_PROPERTY` para indicar la propiedad de archivos donde guardar imágenes. Si no se configura, usa la primera propiedad tipo `files`, prefiriendo nombres como `Images`, `Image`, `Fotos` o `Foto`
+- `PERSIST_ENRICHED_IMAGES_TO_NOTION=false` para desactivar la escritura automática de imágenes encontradas
+
+## Performance
+
+La app usa cache en memoria para `/api/items`. La primera carga después de iniciar el servidor puede tardar porque consulta Notion y, si faltan imágenes, algunos sitios externos. Cuando encuentra una imagen externa, intenta guardarla en la propiedad de archivos del item en Notion. Las visitas siguientes responden desde cache y, después de la primera persistencia, Notion ya trae la imagen junto con el resto de los datos.
+
+Si querés forzar una recarga manual, podés abrir:
+
+```bash
+/api/items?refresh=1
+```
+
+Render usa `/healthz` como health check para no llamar Notion solamente para verificar que el proceso está vivo.
 
 ## Estado actual
 
@@ -71,7 +89,7 @@ La opción preparada en este repo es **Render**.
    - rootDir: `tmp/wardrobe-viewer`
    - buildCommand: `npm install`
    - startCommand: `node server.js`
-   - health check: `/api/items`
+   - health check: `/healthz`
 3. Configurar variables de entorno:
    - `NOTION_TOKEN`
    - `NOTION_WARDROBE_DB_ID=371dded7-4e1e-810c-ae33-e59e6ef1dbc4`

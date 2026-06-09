@@ -18,7 +18,7 @@
 - [ ] Root dir: `tmp/wardrobe-viewer`
 - [ ] Build: `npm install`
 - [ ] Start: `node server.js`
-- [ ] Health check: `/api/items`
+- [ ] Health check: `/healthz`
 - [ ] Variables:
   - [ ] `NOTION_TOKEN`
   - [ ] `NOTION_WARDROBE_DB_ID=371dded7-4e1e-810c-ae33-e59e6ef1dbc4`

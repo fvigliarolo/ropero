@@ -5,7 +5,7 @@ const port = Number(process.env.PORT || 4782);
 const req = http.request({
   host: '127.0.0.1',
   port,
-  path: '/api/items',
+  path: '/healthz',
   method: 'GET',
   timeout: 10000,
 }, (res) => {
@@ -19,8 +19,8 @@ const req = http.request({
   res.on('end', () => {
     try {
       const data = JSON.parse(body);
-      if (!Array.isArray(data.items)) throw new Error('items missing');
-      console.log(`OK ${data.items.length} items`);
+      if (data.ok !== true) throw new Error('ok missing');
+      console.log('OK');
       process.exit(0);
     } catch (error) {
       console.error(`Healthcheck parse failed: ${error.message}`);

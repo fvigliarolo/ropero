@@ -9,9 +9,19 @@ const NOTION_VERSION = '2022-06-28';
 const WARDROBE_DB_ID = process.env.NOTION_WARDROBE_DB_ID || '371dded7-4e1e-810c-ae33-e59e6ef1dbc4';
 const LEGACY_CLOTHES_PAGE_ID = process.env.NOTION_CLOTHES_PAGE_ID || '344dded7-4e1e-8137-87a1-fbe4ff41076e';
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
+const ITEMS_CACHE_TTL_MS = Number(process.env.ITEMS_CACHE_TTL_MS || 10 * 60 * 1000);
+const PRODUCT_FETCH_TIMEOUT_MS = Number(process.env.PRODUCT_FETCH_TIMEOUT_MS || 6000);
+const NOTION_IMAGE_PROPERTY = process.env.NOTION_IMAGE_PROPERTY || '';
+const PERSIST_ENRICHED_IMAGES_TO_NOTION = process.env.PERSIST_ENRICHED_IMAGES_TO_NOTION !== 'false';
 
-function sendJson(res, status, data) {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
+let itemsCache = {
+  items: null,
+  fetchedAt: 0,
+  refreshing: null
+};
+
+function sendJson(res, status, data, headers = {}) {
+  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', ...headers });
   res.end(JSON.stringify(data));
 }
 
@@ -27,9 +37,9 @@ function sendFile(res, filePath, contentType = 'text/html; charset=utf-8') {
   });
 }
 
-async function notionRequest(endpoint, payload) {
+async function notionRequest(endpoint, payload, method = 'POST') {
   const response = await fetch(`https://api.notion.com/v1/${endpoint}`, {
-    method: 'POST',
+    method,
     headers: {
       'Authorization': `Bearer ${NOTION_TOKEN}`,
       'Notion-Version': NOTION_VERSION,
@@ -44,6 +54,10 @@ async function notionRequest(endpoint, payload) {
   }
 
   return response.json();
+}
+
+function notionPatch(endpoint, payload) {
+  return notionRequest(endpoint, payload, 'PATCH');
 }
 
 function plainText(arr = []) {
@@ -103,6 +117,18 @@ function extractFiles(page) {
   });
 }
 
+function pickFilesPropertyName(properties) {
+  if (NOTION_IMAGE_PROPERTY) return NOTION_IMAGE_PROPERTY;
+
+  const filesProperties = Object.entries(properties || {})
+    .filter(([, prop]) => prop.type === 'files')
+    .map(([name]) => name);
+  if (filesProperties.length === 0) return '';
+
+  const preferredNames = ['Images', 'Image', 'Fotos', 'Foto', 'Photos', 'Photo'];
+  return preferredNames.find(name => filesProperties.includes(name)) || filesProperties[0];
+}
+
 async function fetchWardrobeDatabaseItems() {
   const data = await notionRequest(`databases/${WARDROBE_DB_ID}/query`, {
     page_size: 100,
@@ -123,16 +149,19 @@ async function fetchWardrobeDatabaseItems() {
       price: pickNumber(properties, ['Price', 'Precio']),
       status: pickText(properties, ['Status', 'Estado']) || 'guardado',
       productUrl: properties['Product URL']?.url || '',
+      imagePropertyName: pickFilesPropertyName(properties),
       images: extractFiles(page)
     };
   });
 
   const enriched = await Promise.all(baseItems.map(async item => {
     if (item.images.length > 0 || !item.productUrl) return item;
-    return enrichItemFromUrl(item);
+    return enrichItemFromUrl(item, { persistToNotion: true });
   }));
 
-  return enriched.filter(item => item.images.length > 0);
+  return enriched
+    .filter(item => item.images.length > 0)
+    .map(({ imagePropertyName, ...item }) => item);
 }
 
 async function getBlockChildren(blockId) {
@@ -155,28 +184,74 @@ function normalizeItemName(text) {
 }
 
 async function fetchHtml(url) {
-  const response = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 WardrobeViewer' }
-  });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return response.text();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PRODUCT_FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 WardrobeViewer' },
+      signal: controller.signal
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.text();
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
-function extractImageUrls(html) {
+function extractImageUrls(html, baseUrl) {
   const matches = [...html.matchAll(/<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]+content=["']([^"']+)/gi)];
-  const urls = matches.map(m => m[1]);
+  const urls = matches.map(m => {
+    try {
+      return new URL(m[1], baseUrl).href;
+    } catch {
+      return m[1];
+    }
+  });
   return [...new Set(urls)];
 }
 
-async function enrichItemFromUrl(item) {
+function imageNameForItem(item, index) {
+  const fallback = `image-${index + 1}`;
+  return (item.title || fallback)
+    .replace(/[<>:"/\\|?*]+/g, '')
+    .trim()
+    .slice(0, 90) || fallback;
+}
+
+async function persistImagesToNotion(item, images) {
+  if (!PERSIST_ENRICHED_IMAGES_TO_NOTION || !item.imagePropertyName || images.length === 0) return false;
+
+  const files = images.map((image, index) => ({
+    name: imageNameForItem(item, index),
+    type: 'external',
+    external: { url: image.url }
+  }));
+
+  await notionPatch(`pages/${item.id}`, {
+    properties: {
+      [item.imagePropertyName]: { files }
+    }
+  });
+
+  return true;
+}
+
+async function enrichItemFromUrl(item, { persistToNotion = false } = {}) {
   if (!item.productUrl) return item;
   try {
     const html = await fetchHtml(item.productUrl);
-    const images = extractImageUrls(html).map((url, index) => ({
+    const images = extractImageUrls(html, item.productUrl).map((url, index) => ({
       name: `image-${index + 1}`,
       url,
       type: 'external'
     }));
+    if (persistToNotion) {
+      try {
+        await persistImagesToNotion(item, images);
+      } catch (error) {
+        console.warn(`No pude guardar imagen en Notion para "${item.title}":`, error.message);
+      }
+    }
     return { ...item, images };
   } catch {
     return { ...item, images: [] };
@@ -232,6 +307,42 @@ async function fetchItems() {
   }
 }
 
+function isItemsCacheFresh() {
+  return itemsCache.items && Date.now() - itemsCache.fetchedAt < ITEMS_CACHE_TTL_MS;
+}
+
+async function refreshItemsCache() {
+  if (itemsCache.refreshing) return itemsCache.refreshing;
+
+  itemsCache.refreshing = fetchItems()
+    .then(items => {
+      itemsCache.items = items;
+      itemsCache.fetchedAt = Date.now();
+      return items;
+    })
+    .finally(() => {
+      itemsCache.refreshing = null;
+    });
+
+  return itemsCache.refreshing;
+}
+
+async function getItemsWithCache({ force = false } = {}) {
+  if (!force && isItemsCacheFresh()) {
+    return { items: itemsCache.items, cache: 'hit' };
+  }
+
+  if (!force && itemsCache.items) {
+    refreshItemsCache().catch(error => {
+      console.warn('No pude refrescar cache de prendas:', error.message);
+    });
+    return { items: itemsCache.items, cache: 'stale' };
+  }
+
+  const items = await refreshItemsCache();
+  return { items, cache: 'refresh' };
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
@@ -244,10 +355,23 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === '/app.js') {
     return sendFile(res, path.join(PUBLIC_DIR, 'app.js'), 'application/javascript; charset=utf-8');
   }
+  if (url.pathname === '/healthz') {
+    return sendJson(res, 200, { ok: true });
+  }
   if (url.pathname === '/api/items') {
     try {
-      const items = await fetchItems();
-      return sendJson(res, 200, { databaseId: WARDROBE_DB_ID, count: items.length, items });
+      const force = url.searchParams.get('refresh') === '1';
+      const { items, cache } = await getItemsWithCache({ force });
+      return sendJson(res, 200, {
+        databaseId: WARDROBE_DB_ID,
+        count: items.length,
+        cache,
+        cacheTtlMs: ITEMS_CACHE_TTL_MS,
+        fetchedAt: new Date(itemsCache.fetchedAt).toISOString(),
+        items
+      }, {
+        'Cache-Control': 'private, max-age=60'
+      });
     } catch (error) {
       return sendJson(res, 500, { error: error.message });
     }
