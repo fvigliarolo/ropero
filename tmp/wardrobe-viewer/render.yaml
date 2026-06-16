@@ -14,6 +14,8 @@ services:
         sync: false
       - key: NOTION_WARDROBE_DB_ID
         value: 371dded7-4e1e-810c-ae33-e59e6ef1dbc4
+      - key: NOTION_OUTFITS_DB_NAME
+        value: Outfits
       - key: NOTION_CLOTHES_PAGE_ID
         value: 344dded7-4e1e-8137-87a1-fbe4ff41076e
       - key: PORT

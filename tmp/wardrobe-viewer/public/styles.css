@@ -6,6 +6,7 @@
   --text: #f3f5f7;
   --muted: #a9b2bf;
   --accent: #8ab4ff;
+  --accent-2: #7bd88f;
   --border: #333b48;
 }
 
@@ -16,7 +17,7 @@ body {
   background: var(--bg);
   color: var(--text);
 }
-.topbar, .filters, .summary {
+.topbar, .view-tabs, .filters, .summary {
   width: min(1200px, calc(100% - 32px));
   margin: 0 auto;
 }
@@ -33,8 +34,28 @@ button, input, select {
   background: var(--panel);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 10px 12px;
+}
+button {
+  cursor: pointer;
+}
+button:hover {
+  border-color: var(--accent);
+}
+.view-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.view-tab {
+  min-width: 104px;
+  color: var(--muted);
+}
+.view-tab.active {
+  color: var(--text);
+  border-color: var(--accent);
+  background: #243044;
 }
 .filters {
   display: grid;
@@ -54,19 +75,19 @@ button, input, select {
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
 }
-.card {
+.card, .outfit-card {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 8px;
   overflow: hidden;
 }
-.card-image {
+.card-image, .outfit-image {
   width: 100%;
   height: 320px;
   object-fit: cover;
   background: var(--panel-2);
 }
-.card-body { padding: 14px; }
+.card-body, .outfit-body { padding: 14px; }
 .card-head {
   display: flex;
   justify-content: space-between;
@@ -75,7 +96,7 @@ button, input, select {
 }
 .card-title { margin: 0; font-size: 1rem; }
 .card-link { color: var(--accent); font-size: .9rem; text-decoration: none; }
-.card-description { color: var(--muted); min-height: 2.6em; }
+.card-description { color: var(--muted); min-height: 2.6em; line-height: 1.45; }
 .card-actions {
   display: flex;
   gap: 10px;
@@ -104,9 +125,75 @@ button, input, select {
   width: 56px;
   height: 56px;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: 8px;
   border: 1px solid var(--border);
   cursor: pointer;
+}
+.outfits-grid {
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+.outfit-carousel {
+  position: relative;
+  background: var(--panel-2);
+}
+.outfit-image {
+  display: block;
+  height: 420px;
+}
+.carousel-btn {
+  position: absolute;
+  top: 50%;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 50%;
+  border-color: rgba(255, 255, 255, .26);
+  background: rgba(12, 14, 18, .72);
+  transform: translateY(-50%);
+  font-size: 1.8rem;
+  line-height: 1;
+}
+.carousel-prev { left: 10px; }
+.carousel-next { right: 10px; }
+.photo-count {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(12, 14, 18, .76);
+  color: var(--text);
+  font-size: .82rem;
+}
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+.tag {
+  border: 1px solid rgba(123, 216, 143, .45);
+  border-radius: 999px;
+  color: var(--accent-2);
+  padding: 4px 8px;
+  font-size: .82rem;
+}
+.carousel-dots {
+  display: flex;
+  gap: 7px;
+  margin-top: 14px;
+  min-height: 12px;
+}
+.carousel-dots button {
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--border);
+}
+.carousel-dots button.active {
+  background: var(--accent);
+  border-color: var(--accent);
 }
 .empty {
   width: min(1200px, calc(100% - 32px));
@@ -116,4 +203,8 @@ button, input, select {
 @media (max-width: 760px) {
   .filters { grid-template-columns: 1fr; }
   .topbar { align-items: start; flex-direction: column; }
+  .view-tabs { overflow-x: auto; }
+  .outfits-grid { grid-template-columns: 1fr; }
+  .outfit-image { height: 380px; }
+  .card-head { align-items: flex-start; flex-direction: column; }
 }

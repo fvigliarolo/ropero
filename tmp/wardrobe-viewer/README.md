@@ -12,6 +12,7 @@ Se creó para separar esta app de los recuerdos generales y cumplir el criterio 
 
 La app:
 - lee la database estructurada de ropa
+- lee la database `Outfits` para mostrar combinaciones guardadas con carrusel de fotos
 - usa título, tienda, categoría, color, talle, estado y link del producto
 - si una prenda no tiene imagen guardada en Notion, visita el producto y toma su `og:image` / `twitter:image`
 - cuando encuentra esas imágenes externas, las guarda en la propiedad de archivos de Notion para acelerar cargas futuras
@@ -44,6 +45,8 @@ npm run healthcheck
 ## Config opcional
 
 - `NOTION_WARDROBE_DB_ID` para cambiar la database principal
+- `NOTION_OUTFITS_DB_ID` para fijar la database de outfits. Si no se configura, la app busca una database llamada `Outfits`
+- `NOTION_OUTFITS_DB_NAME` para cambiar el nombre usado en la búsqueda automática. Por defecto: `Outfits`
 - `NOTION_CLOTHES_PAGE_ID` para cambiar la página legacy de fallback
 - `PORT` para cambiar el puerto
 - `ITEMS_CACHE_TTL_MS` para ajustar la duración del cache de prendas. Por defecto: 10 minutos
@@ -93,6 +96,7 @@ La opción preparada en este repo es **Render**.
 3. Configurar variables de entorno:
    - `NOTION_TOKEN`
    - `NOTION_WARDROBE_DB_ID=371dded7-4e1e-810c-ae33-e59e6ef1dbc4`
+   - `NOTION_OUTFITS_DB_ID` si querés evitar la búsqueda automática por nombre
    - `NOTION_CLOTHES_PAGE_ID=344dded7-4e1e-8137-87a1-fbe4ff41076e`
    - `PORT=10000`
    - `NODE_VERSION=20`
