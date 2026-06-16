@@ -18,6 +18,7 @@
     <nav class="view-tabs" aria-label="Vistas">
       <button class="view-tab active" type="button" data-view="wardrobe">Prendas</button>
       <button class="view-tab" type="button" data-view="outfits">Outfits</button>
+      <button class="view-tab" type="button" data-view="stores">Tiendas</button>
     </nav>
 
     <section class="filters">
@@ -66,6 +67,25 @@
           <div class="tag-row"></div>
           <dl class="meta"></dl>
           <div class="carousel-dots"></div>
+        </div>
+      </article>
+    </template>
+
+    <template id="storeTpl">
+      <article class="store-card">
+        <div class="store-media">
+          <img class="store-image" alt="" loading="lazy" />
+          <div class="store-placeholder"></div>
+        </div>
+        <div class="store-body">
+          <div class="card-head">
+            <h2 class="card-title"></h2>
+            <a class="card-link" target="_blank" rel="noreferrer">Abrir en Notion</a>
+          </div>
+          <p class="card-description"></p>
+          <div class="tag-row"></div>
+          <div class="store-actions"></div>
+          <dl class="meta"></dl>
         </div>
       </article>
     </template>

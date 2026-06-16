@@ -22,6 +22,8 @@
 - [ ] Variables:
   - [ ] `NOTION_TOKEN`
   - [ ] `NOTION_WARDROBE_DB_ID=371dded7-4e1e-810c-ae33-e59e6ef1dbc4`
+  - [ ] `NOTION_OUTFITS_DB_ID` si se quiere fijar la database de outfits
+  - [ ] `NOTION_STORES_DB_ID` si se quiere fijar la database de tiendas
   - [ ] `NOTION_CLOTHES_PAGE_ID=344dded7-4e1e-8137-87a1-fbe4ff41076e`
   - [ ] `PORT=10000`
   - [ ] `NODE_VERSION=20`

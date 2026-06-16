@@ -2,6 +2,7 @@ const grid = document.getElementById('grid');
 const summary = document.getElementById('summary');
 const wardrobeTpl = document.getElementById('cardTpl');
 const outfitTpl = document.getElementById('outfitTpl');
+const storeTpl = document.getElementById('storeTpl');
 const searchInput = document.getElementById('searchInput');
 const statusFilter = document.getElementById('statusFilter');
 const categoryFilter = document.getElementById('categoryFilter');
@@ -12,9 +13,11 @@ const state = {
   view: 'wardrobe',
   wardrobe: [],
   outfits: [],
+  stores: [],
   loaded: {
     wardrobe: false,
-    outfits: false
+    outfits: false,
+    stores: false
   }
 };
 
@@ -34,6 +37,14 @@ const viewCopy = {
     search: 'Buscar por outfit, nota, temporada, ocasión...',
     status: 'Todos los estados',
     secondary: 'Todos los tags'
+  },
+  stores: {
+    loading: 'Cargando tiendas...',
+    empty: 'No encontré tiendas con esos filtros.',
+    summary: count => `${count} tiendas visibles`,
+    search: 'Buscar por tienda, estilo, ubicación...',
+    status: 'Todos los estados',
+    secondary: 'Todos los estilos'
   }
 };
 
@@ -228,6 +239,73 @@ function renderOutfits(outfits) {
   }
 }
 
+function initialsFor(text) {
+  return (text || 'Tienda')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(word => word[0])
+    .join('')
+    .toUpperCase();
+}
+
+function renderStores(stores) {
+  grid.className = 'grid stores-grid';
+  grid.innerHTML = '';
+  summary.textContent = viewCopy.stores.summary(stores.length);
+
+  if (!stores.length) {
+    setEmpty(viewCopy.stores.empty);
+    return;
+  }
+
+  for (const store of stores) {
+    const node = storeTpl.content.firstElementChild.cloneNode(true);
+    const image = node.querySelector('.store-image');
+    const placeholder = node.querySelector('.store-placeholder');
+    const title = node.querySelector('.card-title');
+    const link = node.querySelector('.card-link');
+    const description = node.querySelector('.card-description');
+    const tags = node.querySelector('.tag-row');
+    const actions = node.querySelector('.store-actions');
+    const meta = node.querySelector('.meta');
+
+    const firstImage = store.images?.[0];
+    if (firstImage) {
+      image.src = firstImage.url;
+      image.alt = store.title;
+      placeholder.hidden = true;
+    } else {
+      image.hidden = true;
+      placeholder.textContent = initialsFor(store.title);
+    }
+
+    title.textContent = store.title;
+    link.href = store.notionUrl;
+    description.textContent = store.description || 'Tienda seguida en Notion';
+
+    tags.innerHTML = '';
+    (store.tags || []).forEach(tag => {
+      const badge = document.createElement('span');
+      badge.className = 'tag';
+      badge.textContent = tag;
+      tags.appendChild(badge);
+    });
+
+    actions.innerHTML = '';
+    if (store.websiteUrl) actions.appendChild(createLink(store.websiteUrl, 'Web'));
+    if (store.instagramUrl) actions.appendChild(createLink(store.instagramUrl, 'Instagram'));
+
+    renderMeta(meta, [
+      ['Estado', store.status],
+      ['Estilo', store.category],
+      ['Ubicación', store.location]
+    ]);
+
+    grid.appendChild(node);
+  }
+}
+
 function updateFilterOptions() {
   const copy = viewCopy[state.view];
   searchInput.placeholder = copy.search;
@@ -235,6 +313,12 @@ function updateFilterOptions() {
   if (state.view === 'wardrobe') {
     fillSelect(statusFilter, uniqueValues(state.wardrobe, item => [item.status]), copy.status);
     fillSelect(categoryFilter, uniqueValues(state.wardrobe, item => [item.brand]), copy.secondary);
+    return;
+  }
+
+  if (state.view === 'stores') {
+    fillSelect(statusFilter, uniqueValues(state.stores, item => [item.status]), copy.status);
+    fillSelect(categoryFilter, uniqueValues(state.stores, item => item.tags || []), copy.secondary);
     return;
   }
 
@@ -264,6 +348,23 @@ function applyFilters() {
     return;
   }
 
+  if (state.view === 'stores') {
+    const filtered = state.stores.filter(store => {
+      const haystack = [store.title, store.description, store.status, store.category, store.location, ...(store.tags || [])]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      if (query && !haystack.includes(query)) return false;
+      if (status && store.status !== status) return false;
+      if (secondary && !(store.tags || []).includes(secondary)) return false;
+      return true;
+    });
+
+    renderStores(filtered);
+    return;
+  }
+
   const filtered = state.outfits.filter(outfit => {
     const haystack = [outfit.title, outfit.description, outfit.status, outfit.season, outfit.occasion, ...(outfit.tags || [])]
       .filter(Boolean)
@@ -284,7 +385,12 @@ async function loadView({ force = false } = {}) {
   summary.textContent = copy.loading;
   grid.innerHTML = '';
 
-  const endpoint = state.view === 'wardrobe' ? '/api/items' : '/api/outfits';
+  const endpoints = {
+    wardrobe: '/api/items',
+    outfits: '/api/outfits',
+    stores: '/api/stores'
+  };
+  const endpoint = endpoints[state.view];
   const res = await fetch(`${endpoint}${force ? '?refresh=1' : ''}`);
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'No pude cargar la base');
@@ -292,6 +398,9 @@ async function loadView({ force = false } = {}) {
   if (state.view === 'wardrobe') {
     state.wardrobe = data.items;
     state.loaded.wardrobe = true;
+  } else if (state.view === 'stores') {
+    state.stores = data.items;
+    state.loaded.stores = true;
   } else {
     state.outfits = data.items;
     state.loaded.outfits = true;

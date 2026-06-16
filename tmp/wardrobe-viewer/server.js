@@ -9,6 +9,8 @@ const NOTION_VERSION = '2022-06-28';
 const WARDROBE_DB_ID = process.env.NOTION_WARDROBE_DB_ID || '371dded7-4e1e-810c-ae33-e59e6ef1dbc4';
 const OUTFITS_DB_ID = process.env.NOTION_OUTFITS_DB_ID || '';
 const OUTFITS_DB_NAME = process.env.NOTION_OUTFITS_DB_NAME || 'Outfits';
+const STORES_DB_ID = process.env.NOTION_STORES_DB_ID || '';
+const STORES_DB_NAME = process.env.NOTION_STORES_DB_NAME || 'Stores';
 const LEGACY_CLOTHES_PAGE_ID = process.env.NOTION_CLOTHES_PAGE_ID || '344dded7-4e1e-8137-87a1-fbe4ff41076e';
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 const ITEMS_CACHE_TTL_MS = Number(process.env.ITEMS_CACHE_TTL_MS || 10 * 60 * 1000);
@@ -28,7 +30,14 @@ let outfitsCache = {
   refreshing: null
 };
 
+let storesCache = {
+  items: null,
+  fetchedAt: 0,
+  refreshing: null
+};
+
 let resolvedOutfitsDatabaseId = OUTFITS_DB_ID;
+let resolvedStoresDatabaseId = STORES_DB_ID;
 
 function sendJson(res, status, data, headers = {}) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', ...headers });
@@ -98,6 +107,21 @@ function pickNumber(properties, names) {
     if (prop?.type === 'number' && prop.number != null) return prop.number;
   }
   return null;
+}
+
+function pickUrl(properties, names) {
+  for (const name of names) {
+    const prop = properties[name];
+    if (!prop) continue;
+    if (prop.type === 'url') return prop.url || '';
+    if (prop.type === 'rich_text') {
+      const linked = (prop.rich_text || []).find(chunk => chunk.href || chunk.text?.link?.url);
+      if (linked) return linked.href || linked.text.link.url;
+      const text = plainText(prop.rich_text).trim();
+      if (/^https?:\/\//i.test(text)) return text;
+    }
+  }
+  return '';
 }
 
 function pickDate(properties, names) {
@@ -181,6 +205,27 @@ async function findDatabaseByName(name) {
     || matches.find(database => plainText(database.title).trim().toLowerCase().includes(normalized));
 }
 
+async function resolveDatabaseId({ currentId, name, alternativeNames = [] }) {
+  if (currentId) return currentId;
+
+  const names = [name, ...alternativeNames].filter(Boolean);
+  for (const candidateName of names) {
+    try {
+      const childDatabase = await findChildDatabaseByName(WARDROBE_DB_ID, candidateName);
+      if (childDatabase?.id) return childDatabase.id;
+    } catch (error) {
+      console.warn(`No pude buscar "${candidateName}" como database hija:`, error.message);
+    }
+  }
+
+  for (const candidateName of names) {
+    const database = await findDatabaseByName(candidateName);
+    if (database?.id) return database.id;
+  }
+
+  throw new Error(`No encontré la database "${name}". Configurá su ID para fijarla.`);
+}
+
 async function fetchWardrobeDatabaseItems() {
   const data = await notionRequest(`databases/${WARDROBE_DB_ID}/query`, {
     page_size: 100,
@@ -257,22 +302,10 @@ function groupOutfits(outfits) {
 async function resolveOutfitsDatabaseId() {
   if (resolvedOutfitsDatabaseId) return resolvedOutfitsDatabaseId;
 
-  try {
-    const childDatabase = await findChildDatabaseByName(WARDROBE_DB_ID, OUTFITS_DB_NAME);
-    if (childDatabase?.id) {
-      resolvedOutfitsDatabaseId = childDatabase.id;
-      return resolvedOutfitsDatabaseId;
-    }
-  } catch (error) {
-    console.warn(`No pude buscar "${OUTFITS_DB_NAME}" como database hija:`, error.message);
-  }
-
-  const database = await findDatabaseByName(OUTFITS_DB_NAME);
-  if (!database?.id) {
-    throw new Error(`No encontré la database "${OUTFITS_DB_NAME}". Configurá NOTION_OUTFITS_DB_ID para fijarla.`);
-  }
-
-  resolvedOutfitsDatabaseId = database.id;
+  resolvedOutfitsDatabaseId = await resolveDatabaseId({
+    currentId: resolvedOutfitsDatabaseId,
+    name: OUTFITS_DB_NAME
+  });
   return resolvedOutfitsDatabaseId;
 }
 
@@ -300,6 +333,43 @@ async function fetchOutfitsDatabaseItems() {
   });
 
   return groupOutfits(outfits).filter(outfit => outfit.images.length > 0);
+}
+
+async function resolveStoresDatabaseId() {
+  if (resolvedStoresDatabaseId) return resolvedStoresDatabaseId;
+
+  resolvedStoresDatabaseId = await resolveDatabaseId({
+    currentId: resolvedStoresDatabaseId,
+    name: STORES_DB_NAME,
+    alternativeNames: ['Tiendas', 'Shops']
+  });
+  return resolvedStoresDatabaseId;
+}
+
+async function fetchStoresDatabaseItems() {
+  const databaseId = await resolveStoresDatabaseId();
+  const data = await notionRequest(`databases/${databaseId}/query`, {
+    page_size: 100
+  });
+
+  return (data.results || []).map(page => {
+    const properties = page.properties || {};
+    const category = pickText(properties, ['Category', 'Tipo', 'Type', 'Style', 'Estilo']);
+    const tags = collectTags(properties, ['Tags', 'Etiquetas', 'Category', 'Tipo', 'Style', 'Estilo']);
+    return {
+      id: page.id,
+      notionUrl: page.url,
+      title: pickTitle(properties),
+      description: pickText(properties, ['Notes', 'Description', 'Details', 'Notas', 'Descripción']),
+      category,
+      status: pickText(properties, ['Status', 'Estado']),
+      location: pickText(properties, ['Location', 'Ubicación', 'Country', 'País']),
+      websiteUrl: pickUrl(properties, ['Website', 'Web', 'URL', 'Site', 'Sitio']),
+      instagramUrl: pickUrl(properties, ['Instagram', 'IG']),
+      tags,
+      images: extractFiles(page)
+    };
+  });
 }
 
 async function getBlockChildren(blockId) {
@@ -462,6 +532,10 @@ function isOutfitsCacheFresh() {
   return outfitsCache.items && Date.now() - outfitsCache.fetchedAt < ITEMS_CACHE_TTL_MS;
 }
 
+function isStoresCacheFresh() {
+  return storesCache.items && Date.now() - storesCache.fetchedAt < ITEMS_CACHE_TTL_MS;
+}
+
 async function refreshItemsCache() {
   if (itemsCache.refreshing) return itemsCache.refreshing;
 
@@ -526,6 +600,38 @@ async function getOutfitsWithCache({ force = false } = {}) {
   return { items, cache: 'refresh' };
 }
 
+async function refreshStoresCache() {
+  if (storesCache.refreshing) return storesCache.refreshing;
+
+  storesCache.refreshing = fetchStoresDatabaseItems()
+    .then(items => {
+      storesCache.items = items;
+      storesCache.fetchedAt = Date.now();
+      return items;
+    })
+    .finally(() => {
+      storesCache.refreshing = null;
+    });
+
+  return storesCache.refreshing;
+}
+
+async function getStoresWithCache({ force = false } = {}) {
+  if (!force && isStoresCacheFresh()) {
+    return { items: storesCache.items, cache: 'hit' };
+  }
+
+  if (!force && storesCache.items) {
+    refreshStoresCache().catch(error => {
+      console.warn('No pude refrescar cache de tiendas:', error.message);
+    });
+    return { items: storesCache.items, cache: 'stale' };
+  }
+
+  const items = await refreshStoresCache();
+  return { items, cache: 'refresh' };
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
@@ -570,6 +676,25 @@ const server = http.createServer(async (req, res) => {
         cache,
         cacheTtlMs: ITEMS_CACHE_TTL_MS,
         fetchedAt: new Date(outfitsCache.fetchedAt).toISOString(),
+        items
+      }, {
+        'Cache-Control': 'private, max-age=60'
+      });
+    } catch (error) {
+      return sendJson(res, 500, { error: error.message });
+    }
+  }
+  if (url.pathname === '/api/stores') {
+    try {
+      const force = url.searchParams.get('refresh') === '1';
+      const { items, cache } = await getStoresWithCache({ force });
+      return sendJson(res, 200, {
+        databaseId: resolvedStoresDatabaseId,
+        databaseName: STORES_DB_NAME,
+        count: items.length,
+        cache,
+        cacheTtlMs: ITEMS_CACHE_TTL_MS,
+        fetchedAt: new Date(storesCache.fetchedAt).toISOString(),
         items
       }, {
         'Cache-Control': 'private, max-age=60'
