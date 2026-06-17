@@ -46,9 +46,9 @@ npm run healthcheck
 ## Config opcional
 
 - `NOTION_WARDROBE_DB_ID` para cambiar la database principal
-- `NOTION_OUTFITS_DB_ID` para fijar la database de outfits. Si no se configura, la app busca una database llamada `Outfits`
+- `NOTION_OUTFITS_DB_ID` para fijar la database de outfits. Recomendado en producción. Si no se configura, la app busca una database llamada `Outfits`
 - `NOTION_OUTFITS_DB_NAME` para cambiar el nombre usado en la búsqueda automática. Por defecto: `Outfits`
-- `NOTION_STORES_DB_ID` para fijar la database de tiendas. Si no se configura, la app busca `Stores`, `Tiendas` o `Shops`
+- `NOTION_STORES_DB_ID` para fijar la database de tiendas. Recomendado en producción. Si no se configura, la app busca `Stores`, `Tiendas` o `Shops`
 - `NOTION_STORES_DB_NAME` para cambiar el nombre principal usado en la búsqueda automática. Por defecto: `Stores`
 - `NOTION_CLOTHES_PAGE_ID` para cambiar la página legacy de fallback
 - `PORT` para cambiar el puerto
@@ -99,8 +99,8 @@ La opción preparada en este repo es **Render**.
 3. Configurar variables de entorno:
    - `NOTION_TOKEN`
    - `NOTION_WARDROBE_DB_ID=371dded7-4e1e-810c-ae33-e59e6ef1dbc4`
-   - `NOTION_OUTFITS_DB_ID` si querés evitar la búsqueda automática por nombre
-   - `NOTION_STORES_DB_ID` si querés evitar la búsqueda automática por nombre
+   - `NOTION_OUTFITS_DB_ID` recomendado para evitar que la búsqueda automática resuelva otra database
+   - `NOTION_STORES_DB_ID` recomendado para evitar que la búsqueda automática resuelva otra database
    - `NOTION_CLOTHES_PAGE_ID=344dded7-4e1e-8137-87a1-fbe4ff41076e`
    - `PORT=10000`
    - `NODE_VERSION=20`

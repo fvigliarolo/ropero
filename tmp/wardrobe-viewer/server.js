@@ -189,7 +189,7 @@ function pickFilesPropertyName(properties) {
   return preferredNames.find(name => filesProperties.includes(name)) || filesProperties[0];
 }
 
-async function findDatabaseByName(name) {
+async function findDatabaseByName(name, { allowPartial = false } = {}) {
   const data = await notionRequest('search', {
     query: name,
     page_size: 10,
@@ -202,17 +202,20 @@ async function findDatabaseByName(name) {
   const normalized = name.trim().toLowerCase();
   const matches = data.results || [];
   return matches.find(database => plainText(database.title).trim().toLowerCase() === normalized)
-    || matches.find(database => plainText(database.title).trim().toLowerCase().includes(normalized));
+    || (allowPartial
+      ? matches.find(database => plainText(database.title).trim().toLowerCase().includes(normalized))
+      : null);
 }
 
-async function resolveDatabaseId({ currentId, name, alternativeNames = [] }) {
+async function resolveDatabaseId({ currentId, name, alternativeNames = [], excludeIds = [] }) {
   if (currentId) return currentId;
 
+  const excluded = new Set(excludeIds.filter(Boolean).map(id => id.replace(/-/g, '')));
   const names = [name, ...alternativeNames].filter(Boolean);
   for (const candidateName of names) {
     try {
       const childDatabase = await findChildDatabaseByName(WARDROBE_DB_ID, candidateName);
-      if (childDatabase?.id) return childDatabase.id;
+      if (childDatabase?.id && !excluded.has(childDatabase.id.replace(/-/g, ''))) return childDatabase.id;
     } catch (error) {
       console.warn(`No pude buscar "${candidateName}" como database hija:`, error.message);
     }
@@ -220,10 +223,10 @@ async function resolveDatabaseId({ currentId, name, alternativeNames = [] }) {
 
   for (const candidateName of names) {
     const database = await findDatabaseByName(candidateName);
-    if (database?.id) return database.id;
+    if (database?.id && !excluded.has(database.id.replace(/-/g, ''))) return database.id;
   }
 
-  throw new Error(`No encontré la database "${name}". Configurá su ID para fijarla.`);
+  throw new Error(`No encontré una database válida para "${name}". Configurá su ID para fijarla.`);
 }
 
 async function fetchWardrobeDatabaseItems() {
@@ -304,7 +307,8 @@ async function resolveOutfitsDatabaseId() {
 
   resolvedOutfitsDatabaseId = await resolveDatabaseId({
     currentId: resolvedOutfitsDatabaseId,
-    name: OUTFITS_DB_NAME
+    name: OUTFITS_DB_NAME,
+    excludeIds: [WARDROBE_DB_ID]
   });
   return resolvedOutfitsDatabaseId;
 }
@@ -341,7 +345,8 @@ async function resolveStoresDatabaseId() {
   resolvedStoresDatabaseId = await resolveDatabaseId({
     currentId: resolvedStoresDatabaseId,
     name: STORES_DB_NAME,
-    alternativeNames: ['Tiendas', 'Shops']
+    alternativeNames: ['Tiendas', 'Shops'],
+    excludeIds: [WARDROBE_DB_ID]
   });
   return resolvedStoresDatabaseId;
 }
