@@ -3,6 +3,31 @@ import fs from 'fs';
 import path from 'path';
 import { URL } from 'url';
 
+const ENV_FILE = path.join(process.cwd(), '.env');
+
+function loadLocalEnv() {
+  if (!fs.existsSync(ENV_FILE)) return;
+
+  const lines = fs.readFileSync(ENV_FILE, 'utf8').split(/\r?\n/);
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+
+    const separatorIndex = line.indexOf('=');
+    if (separatorIndex <= 0) continue;
+
+    const key = line.slice(0, separatorIndex).trim();
+    let value = line.slice(separatorIndex + 1).trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+
+    process.env[key] = value;
+  }
+}
+
+loadLocalEnv();
+
 const PORT = process.env.PORT || 4782;
 const NOTION_TOKEN = process.env.NOTION_TOKEN;
 const NOTION_VERSION = '2022-06-28';
@@ -77,6 +102,10 @@ async function notionRequest(endpoint, payload, method = 'POST') {
 
 function notionPatch(endpoint, payload) {
   return notionRequest(endpoint, payload, 'PATCH');
+}
+
+function isNotionObjectNotFound(error) {
+  return /\bNotion 404\b/.test(error.message) && /object_not_found/.test(error.message);
 }
 
 function plainText(arr = []) {
@@ -313,11 +342,31 @@ async function resolveOutfitsDatabaseId() {
   return resolvedOutfitsDatabaseId;
 }
 
+async function discoverOutfitsDatabaseId() {
+  resolvedOutfitsDatabaseId = '';
+  resolvedOutfitsDatabaseId = await resolveDatabaseId({
+    currentId: '',
+    name: OUTFITS_DB_NAME,
+    excludeIds: [WARDROBE_DB_ID]
+  });
+  return resolvedOutfitsDatabaseId;
+}
+
 async function fetchOutfitsDatabaseItems() {
   const databaseId = await resolveOutfitsDatabaseId();
-  const data = await notionRequest(`databases/${databaseId}/query`, {
-    page_size: 100
-  });
+  let data;
+  try {
+    data = await notionRequest(`databases/${databaseId}/query`, {
+      page_size: 100
+    });
+  } catch (error) {
+    if (!OUTFITS_DB_ID || !isNotionObjectNotFound(error)) throw error;
+
+    const discoveredDatabaseId = await discoverOutfitsDatabaseId();
+    data = await notionRequest(`databases/${discoveredDatabaseId}/query`, {
+      page_size: 100
+    });
+  }
 
   const outfits = (data.results || []).map(page => {
     const properties = page.properties || {};

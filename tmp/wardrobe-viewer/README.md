@@ -28,11 +28,10 @@ Quedó un fallback legacy a la página original:
 
 ```bash
 cd /home/fede/.openclaw/workspace/tmp/wardrobe-viewer
-cp .env.example .env
-# editar .env con el token real
-export $(grep -v '^#' .env | xargs)
 node server.js
 ```
+
+Localmente el servidor carga variables desde `.env`. Ese archivo no se versiona y debe tener el token real de Notion.
 
 Abrir en navegador:
 - `http://localhost:4782`
