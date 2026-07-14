@@ -5,6 +5,7 @@ Este backup sirve para reconstruir la config de Atila sin subir secretos a GitHu
 ## Archivos
 
 - `openclaw.template.json`: copia sanitizada de `~/.openclaw/openclaw.json`
+- `MISSING-COMPONENTS.md`: inventario explícito de lo que no se subió, por qué y cómo reponerlo
 
 ## Qué tenés que reponer a mano
 
@@ -45,5 +46,7 @@ Reemplazá estos placeholders antes de usar la config:
 ## Notas
 
 - Este backup no incluye credenciales reales.
+- Este backup tampoco pretende ser una copia literal de todo `~/.openclaw/`. Es un espejo seguro de la config principal más una guía explícita de lo que falta.
+- Para ver exactamente qué no se subió y qué deberías recrear o restaurar, mirá `MISSING-COMPONENTS.md`.
 - Si además querés una recuperación total de Atila, este repo también debería conservar tus skills locales, scripts y archivos de workspace relevantes.
 - La config real fuente en esta máquina vive en `~/.openclaw/openclaw.json`.
