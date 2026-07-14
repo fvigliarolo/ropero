@@ -1,0 +1,289 @@
+{
+  "meta": {
+    "lastTouchedVersion": "2026.4.14",
+    "lastTouchedAt": "2026-07-02T22:54:00.222Z"
+  },
+  "env": {
+    "OLLAMA_API_KEY": "__REPLACE_OLLAMA_API_KEY__",
+    "NOTION_TOKEN": "__REPLACE_NOTION_TOKEN__",
+    "NOTION_MEMORIES_DB_ID": "332dded74e1e809eac93d9110d80ecbd",
+    "NOTION_TASKS_DB_ID": "332dded74e1e802da02fd22e42bba9a5",
+    "NOTION_ALQUILERES_DB_ID": "332dded74e1e81679a3ee6957b13ce35"
+  },
+  "wizard": {
+    "lastRunAt": "2026-04-11T20:18:38.280Z",
+    "lastRunVersion": "2026.4.10",
+    "lastRunCommand": "doctor",
+    "lastRunMode": "local"
+  },
+  "auth": {
+    "profiles": {
+      "openai-codex:default": {
+        "provider": "openai-codex",
+        "mode": "oauth"
+      },
+      "openai-codex:fd.vigliarolo@gmail.com": {
+        "provider": "openai-codex",
+        "mode": "oauth"
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "openai-codex/gpt-5.4"
+      },
+      "models": {
+        "openai-codex/gpt-5.4": {}
+      },
+      "workspace": "/home/fede/.openclaw/workspace"
+    }
+  },
+  "tools": {
+    "profile": "coding",
+    "web": {
+      "search": {
+        "provider": "perplexity"
+      }
+    },
+    "media": {
+      "audio": {
+        "enabled": true,
+        "maxBytes": 20971520,
+        "timeoutSeconds": 120,
+        "models": [
+          {
+            "type": "cli",
+            "command": "/home/fede/.openclaw/workspace/.audio-stt/transcribe-audio.sh",
+            "args": [
+              "{{MediaPath}}"
+            ]
+          }
+        ]
+      }
+    },
+    "elevated": {
+      "enabled": true,
+      "allowFrom": {
+        "discord": [
+          "446084603271184406"
+        ],
+        "webchat": [
+          "openclaw-control-ui"
+        ]
+      }
+    }
+  },
+  "messages": {
+    "tts": {
+      "auto": "always",
+      "provider": "edge",
+      "providers": {
+        "microsoft": {
+          "enabled": true,
+          "voice": "es-UY-MateoNeural",
+          "lang": "es-UY",
+          "outputFormat": "ogg-24khz-16bit-mono-opus",
+          "pitch": "-4Hz",
+          "rate": "+6%"
+        },
+        "edge": {
+          "enabled": true
+        }
+      },
+      "mode": "all"
+    }
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "ownerDisplay": "raw"
+  },
+  "session": {
+    "dmScope": "per-channel-peer"
+  },
+  "hooks": {
+    "internal": {
+      "enabled": true,
+      "entries": {
+        "session-memory": {
+          "enabled": true
+        },
+        "command-logger": {
+          "enabled": true
+        },
+        "bootstrap-extra-files": {
+          "enabled": true
+        },
+        "boot-md": {
+          "enabled": true
+        }
+      }
+    }
+  },
+  "channels": {
+    "whatsapp": {
+      "enabled": true,
+      "dmPolicy": "allowlist",
+      "selfChatMode": true,
+      "allowFrom": [
+        "+59899828906"
+      ],
+      "groupPolicy": "allowlist",
+      "debounceMs": 0,
+      "mediaMaxMb": 50
+    },
+    "discord": {
+      "enabled": true,
+      "token": "__REPLACE_DISCORD_TOKEN__",
+      "groupPolicy": "allowlist",
+      "streaming": {
+        "mode": "off"
+      },
+      "guilds": {
+        "1482915059351945268": {
+          "requireMention": false,
+          "users": [
+            "446084603271184406"
+          ],
+          "channels": {
+            "1482915060379684936": {
+              "requireMention": false,
+              "enabled": true
+            },
+            "1482915060379684937": {
+              "requireMention": false,
+              "enabled": true
+            },
+            "1484189318124797962": {
+              "requireMention": false,
+              "enabled": true
+            }
+          }
+        }
+      },
+      "execApprovals": {
+        "enabled": true,
+        "approvers": [
+          "446084603271184406"
+        ],
+        "cleanupAfterResolve": true,
+        "target": "both"
+      },
+      "threadBindings": {
+        "spawnSubagentSessions": true
+      },
+      "voice": {
+        "enabled": true,
+        "autoJoin": [
+          {
+            "guildId": "1482915059351945268",
+            "channelId": "1482915060379684937"
+          }
+        ],
+        "daveEncryption": true,
+        "decryptionFailureTolerance": 24,
+        "tts": {
+          "provider": "edge",
+          "providers": {
+            "microsoft": {
+              "enabled": true,
+              "voice": "es-UY-MateoNeural",
+              "lang": "es-UY",
+              "outputFormat": "ogg-24khz-16bit-mono-opus",
+              "pitch": "-4Hz",
+              "rate": "+6%"
+            },
+            "edge": {
+              "enabled": true
+            }
+          }
+        }
+      }
+    }
+  },
+  "gateway": {
+    "port": 18789,
+    "mode": "local",
+    "bind": "loopback",
+    "auth": {
+      "mode": "token",
+      "token": "__REPLACE_GATEWAY_AUTH_TOKEN__"
+    },
+    "tailscale": {
+      "mode": "off",
+      "resetOnExit": false
+    },
+    "http": {
+      "endpoints": {
+        "chatCompletions": {
+          "enabled": true
+        },
+        "responses": {
+          "enabled": true
+        }
+      }
+    },
+    "nodes": {
+      "denyCommands": [
+        "camera.snap",
+        "camera.clip",
+        "screen.record",
+        "contacts.add",
+        "calendar.add",
+        "reminders.add",
+        "sms.send"
+      ]
+    }
+  },
+  "plugins": {
+    "entries": {
+      "whatsapp": {
+        "enabled": true
+      },
+      "openai": {
+        "enabled": true
+      },
+      "ollama": {
+        "enabled": true
+      },
+      "microsoft": {
+        "enabled": true
+      }
+    }
+  },
+  "models": {
+    "providers": {
+      "ollama": {
+        "models": [
+          {
+            "id": "qwen3:0.6b",
+            "name": "qwen3:0.6b",
+            "api": "ollama",
+            "contextWindow": 16384,
+            "maxTokens": 256
+          },
+          {
+            "id": "llama3.2:1b",
+            "name": "llama3.2:1b",
+            "api": "ollama",
+            "contextWindow": 16384,
+            "maxTokens": 384
+          },
+          {
+            "id": "llama3.1:8b",
+            "name": "llama3.1:8b",
+            "api": "ollama",
+            "contextWindow": 16384,
+            "maxTokens": 512
+          }
+        ],
+        "baseUrl": "http://127.0.0.1:11434/v1",
+        "api": "ollama",
+        "apiKey": "__REPLACE_OLLAMA_API_KEY__",
+        "auth": "api-key"
+      }
+    }
+  }
+}
